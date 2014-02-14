@@ -49,7 +49,7 @@ products {
 ```
 
 Lưu ý:
+
 - Mỗi khi thay đổi danh sách product thì start lại application.
 - Tạo topic trong kafka trước khi start application!
 - counter_names là 1 array of string, ví dụ `["banner_left", "banner_right"]`. Nếu để empty (`[]`) thì application khi parse message sẽ tự động thêm counter name vào danh sách.
-- 

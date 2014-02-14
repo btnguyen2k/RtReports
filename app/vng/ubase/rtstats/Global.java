@@ -4,9 +4,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,6 +41,24 @@ public class Global extends GlobalSettings {
 
 	public static String[] getProductNames() {
 		return PRODUCT_CONFIG.keySet().toArray(ArrayUtils.EMPTY_STRING_ARRAY);
+	}
+
+	@SuppressWarnings("unchecked")
+	synchronized public static boolean addCounterNameForProduct(String product,
+			String counterName) {
+		Object productConfig = PRODUCT_CONFIG.get(product);
+		if (productConfig == null) {
+			return false;
+		}
+		List<String> productCounters = DPathUtils.getValue(productConfig,
+				"counter_names", List.class);
+		if (productCounters == null) {
+			productCounters = new ArrayList<String>();
+		}
+		if (!productCounters.contains(counterName)) {
+			productCounters.add(counterName);
+		}
+		return true;
 	}
 
 	public static String[] getCounterNamesForProduct(String product) {
@@ -265,6 +285,7 @@ public class Global extends GlobalSettings {
 			// store counter data in memory
 			counterFactory = new CounterFactory_AtomicLongMap();
 		}
+		Set<String> counterKeys = new HashSet<String>();
 		String[] productNames = getProductNames();
 		for (String product : productNames) {
 			String[] counterNames = getCounterNamesForProduct(product);
@@ -272,11 +293,16 @@ public class Global extends GlobalSettings {
 				String[] keys = vng.ubase.Application.createCouterKeys(product,
 						counterName);
 				for (String key : keys) {
-					ICounter couter = counterFactory.getCounter(key,
-							Constants.BASE_RESOLUTION);
+					counterKeys.add(key);
 				}
 			}
 		}
+		for (String counterKey : counterKeys) {
+			@SuppressWarnings("unused")
+			ICounter couter = counterFactory.getCounter(counterKey,
+					Constants.BASE_RESOLUTION);
+		}
+
 	}
 
 	@Override

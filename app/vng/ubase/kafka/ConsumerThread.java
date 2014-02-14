@@ -9,6 +9,8 @@ import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import play.Logger;
 import vng.ubase.Application;
+import vng.ubase.Constants;
+import vng.ubase.rtstats.Global;
 import vng.ubase.rtstats.counter.ICounter;
 import vng.ubase.rtstats.counter.ICounterFactory;
 
@@ -58,7 +60,7 @@ public class ConsumerThread extends Thread {
 				String message = new String(mm.message(), "UTF-8");
 				Map<String, Object> msg = parseMessage(message);
 				if (msg == null) {
-					System.out.println("Invalid message: " + message);
+					Logger.warn("Invalid message: " + message);
 				} else {
 					String product = DPathUtils.getValue(msg, KEY_APPLICATION,
 							String.class);
@@ -72,8 +74,12 @@ public class ConsumerThread extends Thread {
 							position);
 					for (String key : keys) {
 						ICounter counter = counterFactory.getCounter(key);
+						if (counter == null) {
+							Global.addCounterNameForProduct(product, position);
+							counter = counterFactory.getCounter(key,
+									Constants.BASE_RESOLUTION);
+						}
 						if (counter != null) {
-							// Logger.info(key + "/" + value + "\t" + counter);
 							counter.add(timestamp, value);
 						}
 					}

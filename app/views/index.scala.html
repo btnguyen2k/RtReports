@@ -1,0 +1,165 @@
+@(product: String, position: String, productList: Array[String], positionList: Array[String])
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Realtime Stats | RtReports</title>
+    <link href="@routes.Assets.at("stylesheets/main.css")" rel="stylesheet" type="text/css">
+    <link href="@routes.Assets.at("bootstrap/css/bootstrap.css")" rel="stylesheet" type="text/css">
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="@routes.Assets.at("flot-0.8.0/excanvas.min.js")"></script><![endif]-->
+</head>
+<body>
+	<div id="header" class="container">
+		<div class="row">
+			<div class="col-md-12">
+				<h1>Realtime Stats for [@product / @position]</h1>
+				<form role="form" class="form-inline" method="get">
+					<div class="form-group">
+    					<label for="frm_prod">Product:</label>
+    					<select id="frm_prod" name="prod" onchange="this.form.submit();" style="font-size: large; font-weight: normal;">
+			                @for(p <- productList){
+			                    <option value="@p" @if(product==p){selected="selected"}>@p</option>
+			                }
+			            </select>
+  					</div>
+  					<div class="form-group">
+    					<label for="frm_pos">Position:</label>
+    					<select id="frm_pos" name="pos" onchange="this.form.submit();" style="font-size: large; font-weight: normal;">
+                            <option value="-" @if(position=="-"){selected="selected"}>-= Total =-</option>
+                            <option value="*" @if(position=="*"){selected="selected"}>-= All =-</option>
+                            @for(p <- positionList){
+                                <option value="@p" @if(position==p){selected="selected"}>@p</option>
+                            }
+                        </select>
+  					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+    <div id="content">
+        <div class="demo-container">
+            <div id="placeholder" class="demo-placeholder"></div>
+        </div>
+
+        <p>Time between updates: <input id="updateInterval" type="text" value="" style="text-align: right; width:5em"> milliseconds</p>
+    </div>
+
+    <div id="footer">
+        Powered by <a href="https://github.com/btnguyen2k/RtReports">RtReports</a>
+    </div>
+    
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script language="javascript" type="text/javascript" src="@routes.Assets.at("highchart/js/highcharts.js")"></script>
+    <script language="javascript" type="text/javascript" src="@routes.Assets.at("highchart/js/modules/exporting.js")"></script>
+    
+	<script type="text/javascript">
+		var _UPDATE_INTERVAL = 1000;
+	    $("#updateInterval").val(_UPDATE_INTERVAL).change(function () {
+	        var v = $(this).val();
+	        if (v && !isNaN(+v)) {
+	            _UPDATE_INTERVAL = +v;
+	            if (_UPDATE_INTERVAL < 100) {
+	                _UPDATE_INTERVAL = 100;
+	            } else if (_UPDATE_INTERVAL > 60000) {
+	                _UPDATE_INTERVAL = 60000;
+	            }
+	            $(this).val("" + _UPDATE_INTERVAL);
+	        }
+	    });
+		Highcharts.setOptions({
+	        global: {
+	            useUTC: false
+	        }
+	    });
+		var chart;
+		function requestData() {
+		    $.ajax({
+		        url: '@Html(routes.Application.ajaxGetData(product, position, 1000).url)',
+		        success: function(jsonResult) {
+		        	for (var i = 0; i < jsonResult.length; i++) {
+		        		var serieObject = jsonResult[i];
+		        		var serieLabel = serieObject.label;
+		        		var serieData = serieObject.data;
+		        		var chartSerie = chart.get(serieLabel);
+		        		if (chartSerie == null) { // chart not define
+		        			chart.addSeries({id:serieLabel, data:[], name:serieLabel});
+		        			chartSerie = chart.get(serieLabel);
+		        		} 
+	        			if (serieData.length > 40) {
+	        				chartSerie.setData(serieData.slice(serieData.length - 41, serieData.length - 1));	
+	        			} else {
+	        				chartSerie.setData(serieData.slice(0, serieData.length - 1));
+	        			}
+		        	}
+		            setTimeout(requestData, _UPDATE_INTERVAL);    
+		        },
+		        cache: false
+		    });
+		}
+		$(function () {
+		    $(document).ready(function() {
+		        chart = new Highcharts.Chart({
+		            chart: {
+		            	renderTo: 'placeholder',
+		                type: 'spline',
+		                animation: Highcharts.svg, // don't animate in old IE
+		                marginRight: 10,
+		                events: {
+		                    load: requestData
+		                }
+		            },
+		            plotOptions: {
+		                spline: {
+		                    lineWidth: 2,
+		                    marker: {
+		                        enabled: false
+		                    },
+		                }
+		            },
+		            title: {
+		                text: 'RtStats: @product / @position'
+		            },
+		            xAxis: {
+		                type: 'datetime',
+		                tickPixelInterval: 150
+		            },
+		            yAxis: {
+		                title: {
+		                    text: 'Value'
+		                },
+		                plotLines: [{
+		                    value: 0,
+		                    width: 1,
+		                    color: '#808080'
+		                }],
+		                min:0
+		            },
+		            tooltip: {
+		                formatter: function() {
+		                        return '<b>'+ this.series.name +'</b><br/>'+
+		                        Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) +'<br/>'+
+		                        Highcharts.numberFormat(this.y, 2);
+		                }
+		            },
+		            legend: {
+		                enabled: true
+		            },
+		            exporting: {
+		                enabled: false
+		            },
+		            subtitle: {
+		                text: 'Click the label to show/hide plot.',
+		                floating: true,
+		                align: 'center',
+		                x: -10,
+		                verticalAlign: 'bottom',
+		                y: 12
+		            },
+		        });
+		    });
+		    
+		});
+	</script>
+</body>
+</html>

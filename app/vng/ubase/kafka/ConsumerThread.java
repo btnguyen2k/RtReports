@@ -62,12 +62,10 @@ public class ConsumerThread extends Thread {
 					continue;
 				}
 				if (msg.value == null) {
-					Logger.warn("Missing value [v]: " + message);
-					continue;
+					msg.value = 1.0;
 				}
 				if (msg.timestamp == null) {
-					Logger.warn("Missing timestamp [t]: " + message);
-					continue;
+					msg.timestamp = System.currentTimeMillis();
 				}
 
 				String product = msg.application;

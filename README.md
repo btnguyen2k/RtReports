@@ -9,13 +9,13 @@ Message format: JSON string
 `{
     "a": (string) application name,
     "c": (string) counter name,
-    "v": (double) value,
+    "v": (long) value,
     "t": (long) UNIX timestamp-milliseconds
 }`
 
 Ví dụ: `{"a":"kvcm_click","c":"banner_left","v":1,"t":1392372082088}`
 
-- value: nếu không cung cấp, giá trị mặc định là 1.0.
+- value: nếu không cung cấp, giá trị mặc định là `1`.
 - timestamp: timestamp lúc xảy ra message ở client (nơi sinh ra message); nếu không cung cấp thì giá trị mặc định là timestamp của server chạy RtReports.
 
 
